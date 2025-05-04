@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <title>Karta RH po županijama</title>
+  <script src="https://d3js.org/d3.v3.min.js"></script>
+  <script src="https://d3js.org/topojson.v1.min.js"></script>
+  <style>
+    body {
+      background: black;
+      color: white;
+      font-family: sans-serif;
+      margin: 0;
+      overflow: hidden;
+    }
+    #infoBox {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 15px;
+      border-radius: 4px;
+      max-width: 300px;
+      display: none;
+      font-size: 14px;
+    }
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      pointer-events: none;
+      font-size: 12px;
+    }
+    svg {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="tooltip" class="tooltip" style="display: none;"></div>
+  <div id="infoBox"></div>
+  <script>
+    var width = 960, height = 700;
+
+    var projection = d3.geo.mercator()
+      .center([16.5, 45.8]) // Adjusted for Croatia
+      .scale(5000) // Reduced scale for more zoomed-out initial view
+      .translate([width / 2, height / 2]);
+
+    var path = d3.geo.path().projection(projection);
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    var g = svg.append("g");
+
+    var tooltip = d3.select("#tooltip");
+    var infoBox = d3.select("#infoBox");
+
+    // Population data
+    var populationData = {
+      "Zagrebačka županija": 317606,
+      "Krapinsko-zagorska županija": 115584,
+      "Sisačko-moslavačka županija": 140549,
+      "Karlovačka županija": 112568,
+      "Varaždinska županija": 160847,
+      "Koprivničko-križevačka županija": 101879,
+      "Bjelovarsko-bilogorska županija": 97863,
+      "Primorsko-goranska županija": 296195,
+      "Ličko-senjska županija": 42472,
+      "Virovitičko-podravska županija": 78388,
+      "Požeško-slavonska županija": 64894,
+      "Brodsko-posavska županija": 130267,
+      "Zadarska županija": 160340,
+      "Osječko-baranjska županija": 259481,
+      "Šibensko-kninska županija": 98460,
+      "Vukovarsko-srijemska županija": 144438,
+      "Splitsko-dalmatinska županija": 454798,
+      "Istarska županija": 195794,
+      "Dubrovačko-neretvanska županija": 115564,
+      "Međimurska županija": 105863,
+      "Grad Zagreb": 767131
+    };
+
+    var colorScale = d3.scale.linear()
+      .domain([d3.min(Object.values(populationData)), d3.max(Object.values(populationData))])
+      .range(["#deebf7", "#08519c"]);
+
+    var zoom = d3.behavior.zoom()
+      .scaleExtent([0.8, 8]) // Allow slight zoom-out below 1
+      .on("zoom", function () {
+        g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+      });
+
+    svg.call(zoom);
+
+    // Name mapping for TopoJSON
+    var nameFix = {
+      "Dubrovacko-Neretvanska": "Dubrovačko-neretvanska županija",
+      "Å ibensko-Kninska": "Šibensko-kninska županija",
+      "Splitsko-Dalmatinska": "Splitsko-dalmatinska županija",
+      "Zadarska": "Zadarska županija",
+      "Krapinsko-Zagorska": "Krapinsko-zagorska županija",
+      "Karlovacka": "Karlovačka županija",
+      "Licko-Senjska": "Ličko-senjska županija",
+      "Primorsko-Goranska": "Primorsko-goranska županija",
+      "Sisacko-Moslavacka": "Sisačko-moslavačka županija",
+      "Zagrebacka": "Zagrebačka županija",
+      "Grad Zagreb": "Grad Zagreb",
+      "Istarska": "Istarska županija",
+      "Brodsko-Posavska": "Brodsko-posavska županija",
+      "Osjecko-Baranjska": "Osječko-baranjska županija",
+      "Vukovarsko-Srijemska": "Vukovarsko-srijemska županija",
+      "Viroviticko-Podravska": "Virovitičko-podravska županija",
+      "Bjelovarska-Bilogorska": "Bjelovarsko-bilogorska županija",
+      "KoprivniÄko-KriÅ¾evaÄka": "Koprivničko-križevačka županija",
+      "Medimurska": "Međimurska županija",
+      "VaraÅ¾dinska": "Varaždinska županija"
+    };
+
+    var data; // Global scope for data
+
+    d3.json("cro_regv3.json", function(error, cro) {
+      if (error) {
+        console.error("Error loading TopoJSON:", error);
+        throw error;
+      }
+
+      data = topojson.feature(cro, cro.objects.layer1);
+
+      g.selectAll("path")
+        .data(data.features)
+        .enter().append("path")
+        .attr("d", path)
+        .each(function(d) {
+          var original = d.properties.name;
+          var mappedName = nameFix[original] || original;
+          d.properties.name = mappedName;
+        })
+        .style("fill", function(d) {
+          var pop = populationData[d.properties.name];
+          return pop ? colorScale(pop) : "#ccc";
+        })
+        .style("stroke", "gray")
+        .style("stroke-width", 1)
+        .on("mouseover", function(d) {
+          var pop = populationData[d.properties.name];
+          tooltip.style("display", "block")
+                 .html("<strong>" + d.properties.name + "</strong><br/>Stanovnika: " + (pop ? pop.toLocaleString('hr-HR') : "N/A"));
+          d3.select(this).style("stroke", "yellow").style("stroke-width", 2);
+        })
+        .on("mousemove", function() {
+          tooltip.style("left", (d3.event.pageX + 10) + "px")
+                 .style("top", (d3.event.pageY - 20) + "px");
+        })
+        .on("mouseout", function() {
+          tooltip.style("display", "none");
+          d3.select(this).style("stroke", "gray").style("stroke-width", 1);
+        })
+        .on("click", function(d) {
+          zoomToCounty(d.properties.name);
+        });
+    });
+
+    // Function to zoom and focus on selected county
+    function zoomToCounty(countyName) {
+      var county = data.features.find(function(d) {
+        return d.properties.name === countyName;
+      });
+
+      if (county) {
+        var bounds = path.bounds(county),
+            dx = bounds[1][0] - bounds[0][0],
+            dy = bounds[1][1] - bounds[0][1],
+            x = (bounds[0][0] + bounds[1][0]) / 2,
+            y = (bounds[0][1] + bounds[1][1]) / 2,
+            scale = Math.min(8, 150 / Math.max(dx / width, dy / height)),
+            translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+        // Disable further zoom interactions
+        svg.on("mousedown.zoom", null)
+           .on("mousemove.zoom", null)
+           .on("mouseup.zoom", null)
+           .on("mousewheel.zoom", null)
+           .on("dblclick.zoom", null)
+           .on("touchstart.zoom", null);
+
+        // Transition to zoomed state
+        svg.transition()
+           .duration(1000)
+           .call(zoom.translate(translate).scale(scale).event);
+
+        // Display info in infoBox
+        var pop = populationData[countyName];
+        infoBox.style("display", "block")
+               .html("<strong>" + countyName + "</strong><br/>Stanovnika: " + (pop ? pop.toLocaleString('hr-HR') : "N/A"));
+
+        // Reset after 10 seconds
+        setTimeout(resetMap, 10000);
+      }
+    }
+
+    // Function to reset map to initial state
+    function resetMap() {
+      // Re-enable zoom interactions
+      svg.call(zoom);
+
+      // Transition back to initial state with more zoomed-out view
+      svg.transition()
+         .duration(1000)
+         .call(zoom.translate([0, 0]).scale(0.8).event); // Slightly zoomed out
+
+      // Hide infoBox
+      infoBox.style("display", "none");
+    }
+  </script>
+</body>
+</html>

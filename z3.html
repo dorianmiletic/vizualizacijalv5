@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <title>Karta RH po županijama</title>
+  <script src="https://d3js.org/d3.v3.min.js"></script>
+  <script src="https://d3js.org/topojson.v1.min.js"></script>
+  <style>
+    body {
+      background: black;
+      color: white;
+      font-family: sans-serif;
+    }
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="tooltip" class="tooltip" style="display: none;"></div>
+  <script>
+    var width = 960, height = 700;
+
+    var projection = d3.geo.mercator()
+      .center([0, 10])
+      .scale(6000)
+      .translate([17600, 4500])
+      .rotate([-180, 0]);
+
+    var path = d3.geo.path().projection(projection);
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    var g = svg.append("g");
+
+    var tooltip = d3.select("#tooltip");
+
+    // Populacijski podaci za sve županije
+    var populationData = {
+      "Zagrebačka županija": 317606,
+      "Krapinsko-zagorska županija": 115584,
+      "Sisačko-moslavačka županija": 140549,
+      "Karlovačka županija": 112568,
+      "Varaždinska županija": 160847,
+      "Koprivničko-križevačka županija": 101879,
+      "Bjelovarsko-bilogorska županija": 97863,
+      "Primorsko-goranska županija": 296195,
+      "Ličko-senjska županija": 42472,
+      "Virovitičko-podravska županija": 78388,
+      "Požeško-slavonska županija": 64894,
+      "Brodsko-posavska županija": 130267,
+      "Zadarska županija": 160340,
+      "Osječko-baranjska županija": 259481,
+      "Šibensko-kninska županija": 98460,
+      "Vukovarsko-srijemska županija": 144438,
+      "Splitsko-dalmatinska županija": 454798,
+      "Istarska županija": 195794,
+      "Dubrovačko-neretvanska županija": 115564,
+      "Međimurska županija": 105863,
+      "Grad Zagreb": 767131
+    };
+
+    var colorScale = d3.scale.linear()
+      .domain([d3.min(Object.values(populationData)), d3.max(Object.values(populationData))])
+      .range(["#deebf7", "#08519c"]);
+
+    var zoom = d3.behavior.zoom()
+      .scaleExtent([1, 8])
+      .on("zoom", function () {
+        g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+      });
+
+    svg.call(zoom);
+
+    // Mapiranje TopoJSON imena na populationData ključeve
+    var nameFix = {
+      "Dubrovacko-Neretvanska": "Dubrovačko-neretvanska županija",
+      "Å ibensko-Kninska": "Šibensko-kninska županija",
+      "Splitsko-Dalmatinska": "Splitsko-dalmatinska županija",
+      "Zadarska": "Zadarska županija",
+      "Krapinsko-Zagorska": "Krapinsko-zagorska županija",
+      "Karlovacka": "Karlovačka županija",
+      "Licko-Senjska": "Ličko-senjska županija",
+      "Primorsko-Goranska": "Primorsko-goranska županija",
+      "Sisacko-Moslavacka": "Sisačko-moslavačka županija",
+      "Zagrebacka": "Zagrebačka županija",
+      "Grad Zagreb": "Grad Zagreb",
+      "Istarska": "Istarska županija",
+      "Brodsko-Posavska": "Brodsko-posavska županija",
+      "Osjecko-Baranjska": "Osječko-baranjska županija",
+      "Vukovarsko-Srijemska": "Vukovarsko-srijemska županija",
+      "Viroviticko-Podravska": "Virovitičko-podravska županija",
+      "Bjelovarska-Bilogorska": "Bjelovarsko-bilogorska županija",
+      "KoprivniÄko-KriÅ¾evaÄka": "Koprivničko-križevačka županija",
+      "Medimurska": "Međimurska županija",
+      "VaraÅ¾dinska": "Varaždinska županija"
+    };
+
+    d3.json("cro_regv3.json", function(error, cro) {
+      if (error) {
+        console.error("Error loading TopoJSON:", error);
+        throw error;
+      }
+
+      var data = topojson.feature(cro, cro.objects.layer1);
+
+      // Log all TopoJSON names and IDs for debugging
+      data.features.forEach(function(d) {
+        console.log("TopoJSON name:", d.properties.name, "ID:", d.id);
+      });
+
+      g.selectAll("path")
+        .data(data.features)
+        .enter().append("path")
+        .attr("d", path)
+        .each(function(d) {
+          var original = d.properties.name;
+          var mappedName;
+
+          // Handle Požeško-slavonska based on ID
+          if (original === "Brodsko-Posavska" && d.id === "PZ") {
+            mappedName = "Požeško-slavonska županija";
+          } else {
+            mappedName = nameFix[original] || original;
+          }
+
+          d.properties.name = mappedName;
+
+          // Detailed debugging for Krapinsko-zagorska and Požeško-slavonska
+          if (mappedName === "Krapinsko-zagorska županija" || mappedName === "Požeško-slavonska županija") {
+            console.log("County:", mappedName);
+            console.log("Original TopoJSON name:", original);
+            console.log("Mapped name:", mappedName);
+            console.log("Population found:", populationData[mappedName]);
+          }
+        })
+        .style("fill", function(d) {
+          var pop = populationData[d.properties.name];
+          return pop ? colorScale(pop) : "#ccc";
+        })
+        .style("stroke", "gray")
+        .style("stroke-width", 1)
+        .on("mouseover", function(d) {
+          var pop = populationData[d.properties.name];
+          tooltip.style("display", "block")
+                 .html("<strong>" + d.properties.name + "</strong><br/>Stanovnika: " + (pop ? pop.toLocaleString('hr-HR') : "N/A"));
+          d3.select(this).style("stroke", "yellow").style("stroke-width", 2);
+        })
+        .on("mousemove", function() {
+          tooltip.style("left", (d3.event.pageX + 10) + "px")
+                 .style("top", (d3.event.pageY - 20) + "px");
+        })
+        .on("mouseout", function() {
+          tooltip.style("display", "none");
+          d3.select(this).style("stroke", "gray").style("stroke-width", 1);
+        });
+    });
+  </script>
+</body>
+</html>

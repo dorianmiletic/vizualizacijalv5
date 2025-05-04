@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <title>Z1</title>
+  <script src="https://d3js.org/d3.v3.min.js"></script>
+  <script src="https://d3js.org/topojson.v1.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 5px 10px;
+      background: white;
+      border: 1px solid #ccc;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Pređi mišem preko županije</div>
+
+  <script>
+    var width = 960;
+    var height = 700;
+
+    var projection = d3.geo.mercator()
+      .center([0, 10])
+      .scale(6000)
+      .translate([17600, 4500])
+      .rotate([-180, 0]);
+
+    var path = d3.geo.path().projection(projection);
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .style("background", "black");
+
+    var info = d3.select("#info");
+
+    d3.json("cro_regv3.json", function(error, cro) {
+      if (error) throw error;
+
+      var data = topojson.feature(cro, cro.objects.layer1);
+      
+      var states = svg.selectAll("path.county")
+        .data(data.features)
+        .enter()
+        .append("path")
+        .attr("class", "county")
+        .attr("id", function(d) { return d.id; })
+        .attr("d", path)
+        .style("fill", "red")
+        .style("stroke", "gray")
+        .style("stroke-width", 1)
+        .style("stroke-opacity", 1)
+        .on("mouseover", function(d) {
+          info.text("Županija: " + d.properties.name);
+          d3.select(this).style("fill", "orange");
+        })
+        .on("mouseout", function(d) {
+          info.text("Pređi mišem preko županije");
+          d3.select(this).style("fill", "red");
+        });
+    });
+  </script>
+</body>
+</html>
