@@ -46,8 +46,8 @@
     var width = 960, height = 700;
 
     var projection = d3.geo.mercator()
-      .center([16.5, 45.8]) // Adjusted for Croatia
-      .scale(5000) // Reduced scale for more zoomed-out initial view
+      .center([16.5, 45.8]) 
+      .scale(5000) 
       .translate([width / 2, height / 2]);
 
     var path = d3.geo.path().projection(projection);
@@ -61,7 +61,7 @@
     var tooltip = d3.select("#tooltip");
     var infoBox = d3.select("#infoBox");
 
-    // Population data
+    
     var populationData = {
       "Zagrebačka županija": 317606,
       "Krapinsko-zagorska županija": 115584,
@@ -91,14 +91,14 @@
       .range(["#deebf7", "#08519c"]);
 
     var zoom = d3.behavior.zoom()
-      .scaleExtent([0.8, 8]) // Allow slight zoom-out below 1
+      .scaleExtent([0.8, 8]) 
       .on("zoom", function () {
         g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
       });
 
     svg.call(zoom);
 
-    // Name mapping for TopoJSON
+  
     var nameFix = {
       "Dubrovacko-Neretvanska": "Dubrovačko-neretvanska županija",
       "Å ibensko-Kninska": "Šibensko-kninska županija",
@@ -122,7 +122,7 @@
       "VaraÅ¾dinska": "Varaždinska županija"
     };
 
-    var data; // Global scope for data
+    var data; 
 
     d3.json("cro_regv3.json", function(error, cro) {
       if (error) {
@@ -166,7 +166,7 @@
         });
     });
 
-    // Function to zoom and focus on selected county
+    
     function zoomToCounty(countyName) {
       var county = data.features.find(function(d) {
         return d.properties.name === countyName;
@@ -181,7 +181,7 @@
             scale = Math.min(8, 150 / Math.max(dx / width, dy / height)),
             translate = [width / 2 - scale * x, height / 2 - scale * y];
 
-        // Disable further zoom interactions
+       
         svg.on("mousedown.zoom", null)
            .on("mousemove.zoom", null)
            .on("mouseup.zoom", null)
@@ -189,32 +189,32 @@
            .on("dblclick.zoom", null)
            .on("touchstart.zoom", null);
 
-        // Transition to zoomed state
+  
         svg.transition()
            .duration(1000)
            .call(zoom.translate(translate).scale(scale).event);
 
-        // Display info in infoBox
+        
         var pop = populationData[countyName];
         infoBox.style("display", "block")
                .html("<strong>" + countyName + "</strong><br/>Stanovnika: " + (pop ? pop.toLocaleString('hr-HR') : "N/A"));
 
-        // Reset after 10 seconds
+        
         setTimeout(resetMap, 10000);
       }
     }
 
-    // Function to reset map to initial state
+   
     function resetMap() {
-      // Re-enable zoom interactions
+     
       svg.call(zoom);
 
-      // Transition back to initial state with more zoomed-out view
+      
       svg.transition()
          .duration(1000)
-         .call(zoom.translate([0, 0]).scale(0.8).event); // Slightly zoomed out
+         .call(zoom.translate([0, 0]).scale(0.8).event); 
 
-      // Hide infoBox
+      
       infoBox.style("display", "none");
     }
   </script>

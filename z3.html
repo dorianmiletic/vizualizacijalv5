@@ -42,7 +42,7 @@
 
     var tooltip = d3.select("#tooltip");
 
-    // Populacijski podaci za sve županije
+    
     var populationData = {
       "Zagrebačka županija": 317606,
       "Krapinsko-zagorska županija": 115584,
@@ -79,7 +79,7 @@
 
     svg.call(zoom);
 
-    // Mapiranje TopoJSON imena na populationData ključeve
+    
     var nameFix = {
       "Dubrovacko-Neretvanska": "Dubrovačko-neretvanska županija",
       "Å ibensko-Kninska": "Šibensko-kninska županija",
@@ -111,7 +111,7 @@
 
       var data = topojson.feature(cro, cro.objects.layer1);
 
-      // Log all TopoJSON names and IDs for debugging
+      
       data.features.forEach(function(d) {
         console.log("TopoJSON name:", d.properties.name, "ID:", d.id);
       });
@@ -124,7 +124,7 @@
           var original = d.properties.name;
           var mappedName;
 
-          // Handle Požeško-slavonska based on ID
+          
           if (original === "Brodsko-Posavska" && d.id === "PZ") {
             mappedName = "Požeško-slavonska županija";
           } else {
@@ -133,7 +133,7 @@
 
           d.properties.name = mappedName;
 
-          // Detailed debugging for Krapinsko-zagorska and Požeško-slavonska
+          
           if (mappedName === "Krapinsko-zagorska županija" || mappedName === "Požeško-slavonska županija") {
             console.log("County:", mappedName);
             console.log("Original TopoJSON name:", original);
